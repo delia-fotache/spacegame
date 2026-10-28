@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SpaceCollector - Joc Web</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+    <button id="btnShoot" class="hidden" aria-label="Trage cu arma navei">🎯 FOC<br><small>Ține apăsat / Spațiu</small></button>
+
+    <!-- Notificare Scurtă -->
+    <div id="toastMsg"></div>
+
+    <!-- HUD Joc -->
+    <div id="hud">
+        <div class="hud-top-row">
+            <div class="hud-pill" id="hudLives">❤️❤️❤️</div>
+            <div class="hud-pill" id="hudLevelName">Nivelul 1</div>
+            <div class="hud-pill debug-badge hidden" id="hudDebugBadge">🐞 DEBUG</div>
+            <div class="hud-pill">⭐ <span id="hudStars">0</span></div>
+            <button class="hud-btn" id="btnPauseGame" data-action="togglePauseGame">⏸️ PAUZĂ</button>
+        </div>
+        <div class="progress-container">
+            <div class="progress-fill" id="hudProgressFill"></div>
+            <div class="progress-text" id="hudProgressText">SCOR: 0 / 100</div>
+        </div>
+    </div>
+
+    <!-- Bara de Gear-uri Jos -->
+    <div id="gearHotbar">
+        <div class="gear-slot" id="slot-magnet" data-action="useGear" data-value="magnet">
+            <span class="gear-key">1</span>
+            <span class="gear-icon">🧲</span>
+            <span class="gear-name-mini">Magnet</span>
+            <span class="gear-count" id="count-magnet">0</span>
+        </div>
+        <div class="gear-slot" id="slot-shield" data-action="useGear" data-value="shield">
+            <span class="gear-key">2</span>
+            <span class="gear-icon">🛡️</span>
+            <span class="gear-name-mini">Scut</span>
+            <span class="gear-count" id="count-shield">0</span>
+        </div>
+        <div class="gear-slot" id="slot-nova" data-action="useGear" data-value="nova">
+            <span class="gear-key">3</span>
+            <span class="gear-icon">⚡</span>
+            <span class="gear-name-mini">Supernova</span>
+            <span class="gear-count" id="count-nova">0</span>
+        </div>
+        <div class="gear-slot" id="slot-repair" data-action="useGear" data-value="repair">
+            <span class="gear-key">4</span>
+            <span class="gear-icon">❤️</span>
+            <span class="gear-name-mini">Reparație</span>
+            <span class="gear-count" id="count-repair">0</span>
+        </div>
+    </div>
+
+    <!-- MENIU PRINCIPAL -->
+    <div class="overlay" id="mainMenuModal">
+        <div class="card">
+            <div class="title-gradient">SPACE COLLECTOR</div>
+            <div class="subtitle">Adună stele cosmice, folosește gear-uri și cucerește galaxia!</div>
+
+            <div class="stats-bar">
+                <div class="stat-box">
+                    <div class="stat-label">🏆 Record</div>
+                    <div class="stat-value" id="menuHighScore">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">⭐ Stele Monede</div>
+                    <div class="stat-value" id="menuTotalStars" style="color:#facc15;">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">🪐 Nivel Activ</div>
+                    <div class="stat-value" id="menuCurrLevel" style="color:#38bdf8;">Nivel 1</div>
+                </div>
+            </div>
+
+            <div class="section-title">Alege Nava din Hangar</div>
+            <div class="ships-grid" id="shipSelectorGrid"></div>
+
+            <div class="btn-group">
+                <button class="btn btn-play" data-action="startSelectedLevel">🚀 JOACĂ ACUM</button>
+                <div class="btn-row">
+                    <button class="btn btn-levels" data-action="openLevelModal">🪐 ALEGE NIVELUL</button>
+                    <button class="btn btn-shop" data-action="openShopModal" data-value="menu">🛒 SHOP GEAR</button>
+                </div>
+                <button class="btn btn-debug" id="btnDebugMode" data-action="toggleDebugMode" aria-pressed="false" aria-describedby="debugModeHelp">🐞 MOD DEBUG: OPRIT</button>
+                <p class="debug-help" id="debugModeHelp">Joacă orice nivel fără a modifica nivelurile deblocate.</p>
+                <button class="btn btn-reset" data-action="openResetModal">🗑️ Resetează Progresul</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ALEGERE NIVEL -->
+    <div class="overlay hidden" id="difficultyModal" role="dialog" aria-modal="true" aria-labelledby="difficultyTitle">
+        <div class="card difficulty-card">
+            <h2 id="difficultyTitle">Ce nivel de dificultate vrei?</h2>
+            <div class="subtitle">Modul Infinit ♾️</div>
+            <div class="btn-group">
+                <button class="btn btn-play" data-action="startSelectedLevel" data-value="easy">Ușor — asteroizi lenți</button>
+                <button class="btn btn-levels" data-action="startSelectedLevel" data-value="medium">Medium — viteză normală</button>
+                <button class="btn btn-shop" data-action="startSelectedLevel" data-value="hard">Greu — asteroizi rapizi</button>
+                <button class="btn btn-secondary" data-action="showMainMenu">Înapoi la Meniu</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay hidden" id="levelModal">
+        <div class="card">
+            <div class="title-gradient" style="font-size:24px;">🪐 HARTA GALAXIEI</div>
+            <div class="subtitle" id="levelModalSubtitle">Termină Nivelul 5 pentru a debloca Modul Infinit ♾️ și Nivelele 6 - 10!</div>
+            <div class="list-container" id="levelListContainer"></div>
+            <button class="btn btn-secondary" style="width:100%;" data-action="closeLevelModal">Înapoi la Meniu</button>
+        </div>
+    </div>
+
+    <!-- MODAL MAGAZIN GEAR -->
+    <div class="overlay hidden" id="shopModal">
+        <div class="card">
+            <div class="title-gradient" style="font-size:24px;">🛒 MAGAZINUL DE GEAR-URI</div>
+            <div class="subtitle">Stele disponibile: <strong style="color:#facc15;" id="shopStarsBalance">0 ⭐</strong></div>
+            <div class="list-container" id="shopListContainer"></div>
+            <button class="btn btn-secondary" style="width:100%;" data-action="closeShopModal">Înapoi</button>
+        </div>
+    </div>
+
+    <!-- MODAL VICTORIE NIVEL -->
+    <div class="overlay hidden" id="victoryModal">
+        <div class="card">
+            <div style="font-size:46px; margin-bottom:6px;">🎉🏆</div>
+            <div class="title-gradient" id="victoryTitle" style="font-size:26px;">NIVEL COMPLETAT!</div>
+            <p class="subtitle" id="victorySubtitle" style="font-size:14px; color:#e2e8f0; margin-top:6px;"></p>
+            <div class="btn-group" style="margin-top:16px;">
+                <button class="btn btn-play" id="btnNextLevel" data-action="goToNextLevel">Nivelul Următor ⏭️</button>
+                <button class="btn btn-shop" data-action="openShopModal" data-value="victory">🛒 Cumpără Gear din Shop</button>
+                <button class="btn btn-secondary" data-action="showMainMenu">🏠 Meniu Principal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL GAME OVER -->
+    <div class="overlay hidden" id="gameOverModal">
+        <div class="card">
+            <div style="font-size:46px; margin-bottom:6px;">💥🛸</div>
+            <div class="title-gradient" style="font-size:26px; background:linear-gradient(90deg,#ef4444,#f97316); -webkit-background-clip:text;">NAVA A FOST AVARIATĂ!</div>
+            <p class="subtitle" id="gameOverStats" style="font-size:14px; color:#e2e8f0; margin-top:6px;"></p>
+            <div class="btn-group" style="margin-top:16px;">
+                <button class="btn btn-play" data-action="startSelectedLevel">🔄 Încearcă Din Nou</button>
+                <button class="btn btn-shop" data-action="openShopModal" data-value="gameover">🛒 Shop Gear</button>
+                <button class="btn btn-secondary" data-action="showMainMenu">🏠 Meniu Principal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CONFIRMARE RESETARE -->
+    <div class="overlay hidden" id="resetModal">
+        <div class="card" style="max-width:400px;">
+            <div style="font-size:42px; margin-bottom:8px;">⚠️🗑️</div>
+            <h3 style="font-size:20px; font-weight:900; margin-bottom:8px;">Resetezi tot progresul?</h3>
+            <p class="subtitle" style="font-size:13px; line-height:1.4;">
+                Recordul, stelele adunate și nivelele deblocate vor reveni la zero. Vei primi din nou cadoul de început (1x Magnet 🧲 și 1x Scut 🛡️).
+            </p>
+            <div class="btn-row" style="margin-top:16px;">
+                <button class="btn btn-secondary" data-action="closeResetModal">Anulează</button>
+                <button class="btn btn-danger" data-action="confirmResetProgress">🗑️ Da, Resetează</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PAUZĂ ÎN JOC -->
+    <div class="overlay hidden" id="pauseModal">
+        <div class="card" style="max-width:420px;">
+            <div style="font-size:46px; margin-bottom:6px;">⏸️🛸</div>
+            <div class="title-gradient" style="font-size:26px;">JOC ÎN PAUZĂ</div>
+            <p class="subtitle" id="pauseStatsText" style="font-size:14px; color:#e2e8f0; margin-top:6px;"></p>
+            <div class="btn-group" style="margin-top:16px;">
+                <button class="btn btn-play" data-action="resumeGame">▶️ CONTINUĂ JOCUL</button>
+                <button class="btn btn-levels" data-action="restartFromPause">🔄 REÎNCEPE NIVELUL</button>
+                <button class="btn btn-secondary" data-action="exitToMenuFromPause">🏠 IEȘI ÎN MENIU</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/main.js"></script>
+</body>
+</html>
